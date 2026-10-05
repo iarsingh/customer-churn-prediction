@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: customer-churn-prediction
+  labels:
+    app: customer-churn-prediction
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: customer-churn-prediction
+  template:
+    metadata:
+      labels:
+        app: customer-churn-prediction
+    spec:
+      containers:
+        - name: api
+          image: customer-churn-prediction:local
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /v1/readyz
+              port: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: customer-churn-prediction
+spec:
+  selector:
+    app: customer-churn-prediction
+  ports:
+    - port: 80
+      targetPort: 8080
