@@ -13,12 +13,13 @@ I would demonstrate the linked implementation or examples and distinguish that e
 ## 2. How is this repository organized?
 
 - [`src/churn/main.py`](src/churn/main.py): Implementation or supporting configuration.
+- [`src/churn/ops.py`](src/churn/ops.py): Implementation or supporting configuration.
 - [`src/churn/score.py`](src/churn/score.py): Implementation or supporting configuration.
 - [`requirements.txt`](requirements.txt): Implementation or supporting configuration.
 - [`src/churn/__init__.py`](src/churn/__init__.py): Implementation or supporting configuration.
-- [`tests/test_churn.py`](tests/test_churn.py): Executable checks and regression examples.
-- [`.github/workflows/ci.yml`](.github/workflows/ci.yml): GitHub Actions job definitions.
-- [`README.md`](README.md): Project explanations or operating notes.
+- [`Dockerfile`](Dockerfile): Container build/service configuration.
+- [`Makefile`](Makefile): Implementation or supporting configuration.
+- [`docker-compose.yml`](docker-compose.yml): Container build/service configuration.
 
 [PROJECT_ARCHITECTURE.md](PROJECT_ARCHITECTURE.md) contains the component diagram and the implementation walkthrough.
 
@@ -67,12 +68,13 @@ It uses `explain`, `len`, `round`, `sigmoid`. This is the code path I would comp
 
 Explicit failure paths include:
 
-- `HTTPException(status_code=422, detail='customers must be a list of 1 to 1000 items')` in [`src/churn/main.py`](src/churn/main.py#L37).
-- `HTTPException(status_code=422, detail=str(exc))` in [`src/churn/main.py`](src/churn/main.py#L29).
-- `HTTPException(status_code=422, detail='each customer needs a string id')` in [`src/churn/main.py`](src/churn/main.py#L40).
-- `HTTPException(status_code=422, detail=str(exc))` in [`src/churn/main.py`](src/churn/main.py#L44).
-- `InputError('threshold must be from 0 to 1')` in [`src/churn/score.py`](src/churn/score.py#L103).
-- `InputError(f'{name} must be a number from {low} to {high}')` in [`src/churn/score.py`](src/churn/score.py#L98).
+- `HTTPException(status_code=422, detail='customers must be a list of 1 to 1000 items')` in [`src/churn/main.py`](src/churn/main.py#L39).
+- `HTTPException(status_code=422, detail=str(exc))` in [`src/churn/main.py`](src/churn/main.py#L31).
+- `HTTPException(status_code=422, detail='each customer needs a string id')` in [`src/churn/main.py`](src/churn/main.py#L42).
+- `HTTPException(status_code=422, detail=str(exc))` in [`src/churn/main.py`](src/churn/main.py#L46).
+- `HTTPException(status_code=404, detail='workspace not found')` in [`src/churn/ops.py`](src/churn/ops.py#L77).
+- `HTTPException(status_code=404, detail='job not found')` in [`src/churn/ops.py`](src/churn/ops.py#L100).
+- `HTTPException(status_code=404, detail='job not found')` in [`src/churn/ops.py`](src/churn/ops.py#L109).
 
 I would test both the condition that reaches each exception and the caller that translates it. An explicit raise does not mean every malformed input or dependency failure is handled.
 
@@ -90,16 +92,20 @@ This is a concrete regression example from the repository. Its assertions establ
 
 ## 7. What HTTP interface does the code expose?
 
-- `GET /healthz` → `healthz` in [`src/churn/main.py`](src/churn/main.py#L9).
-- `GET /model` → `get_model` in [`src/churn/main.py`](src/churn/main.py#L14).
-- `POST /score` → `post_score` in [`src/churn/main.py`](src/churn/main.py#L24).
-- `POST /score/batch` → `post_batch` in [`src/churn/main.py`](src/churn/main.py#L33).
+- `GET /healthz` → `healthz` in [`src/churn/main.py`](src/churn/main.py#L11).
+- `GET /model` → `get_model` in [`src/churn/main.py`](src/churn/main.py#L16).
+- `POST /score` → `post_score` in [`src/churn/main.py`](src/churn/main.py#L26).
+- `POST /score/batch` → `post_batch` in [`src/churn/main.py`](src/churn/main.py#L35).
+- `GET /readyz` → `readyz` in [`src/churn/ops.py`](src/churn/ops.py#L44).
+- `POST /workspaces` → `create_workspace` in [`src/churn/ops.py`](src/churn/ops.py#L49).
+- `GET /workspaces` → `list_workspaces` in [`src/churn/ops.py`](src/churn/ops.py#L66).
+- `POST /workspaces/{workspace_id}/jobs` → `create_job` in [`src/churn/ops.py`](src/churn/ops.py#L73).
 
 These are literal decorators. Application/router prefixes, authentication, and middleware must be checked in the corresponding setup code.
 
 ## 8. Where does state live, and what happens with multiple workers?
 
-Module-level containers include `LIMITS` in [`src/churn/score.py`](src/churn/score.py).
+Module-level containers include `_WORKSPACES`, `_JOBS`, `_AUDIT`, `_METRICS` in [`src/churn/ops.py`](src/churn/ops.py); `LIMITS` in [`src/churn/score.py`](src/churn/score.py).
 
 These containers belong to a Python process. Inspect which are constant fixtures and which are mutated. Mutable process state needs an explicit shared-storage or synchronization strategy before multiple workers can provide consistent behavior.
 
@@ -138,3 +144,9 @@ In [`src/churn/score.py`](src/churn/score.py#L31), `train(rows, epochs=3000, rat
 Its result is defined by:
 
 - `{'bias': bias, 'weights': dict(zip(FEATURES, weights)), 'stats': stats}`
+
+## 13. What does the operations plane add, and where is its limit?
+
+[`src/churn/ops.py`](src/churn/ops.py) declares `GET /readyz`, `POST /workspaces`, `GET /workspaces`, `POST /workspaces/{workspace_id}/jobs`, `GET /jobs/{job_id}`, `POST /jobs/{job_id}/approve`, `GET /audit`, `GET /metrics`. Inspect the application’s `include_router` call for its URL prefix.
+
+Its state containers are `_WORKSPACES`, `_JOBS`, `_AUDIT`, `_METRICS`. The job-approval handler defines whether a target is accepted or refused; check that branch and the associated tests instead of treating a recorded job as a successful infrastructure apply.
