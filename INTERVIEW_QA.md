@@ -96,10 +96,10 @@ This is a concrete regression example from the repository. Its assertions establ
 - `GET /model` → `get_model` in [`src/churn/main.py`](src/churn/main.py#L16).
 - `POST /score` → `post_score` in [`src/churn/main.py`](src/churn/main.py#L26).
 - `POST /score/batch` → `post_batch` in [`src/churn/main.py`](src/churn/main.py#L35).
-- `GET /readyz` → `readyz` in [`src/churn/ops.py`](src/churn/ops.py#L44).
-- `POST /workspaces` → `create_workspace` in [`src/churn/ops.py`](src/churn/ops.py#L49).
-- `GET /workspaces` → `list_workspaces` in [`src/churn/ops.py`](src/churn/ops.py#L66).
-- `POST /workspaces/{workspace_id}/jobs` → `create_job` in [`src/churn/ops.py`](src/churn/ops.py#L73).
+- `GET /readyz` → `readyz` in [`src/churn/ops.py`](src/churn/ops.py#L74).
+- `POST /workspaces` → `create_workspace` in [`src/churn/ops.py`](src/churn/ops.py#L80).
+- `GET /workspaces` → `list_workspaces` in [`src/churn/ops.py`](src/churn/ops.py#L98).
+- `POST /workspaces/{workspace_id}/jobs` → `create_job` in [`src/churn/ops.py`](src/churn/ops.py#L106).
 
 These are literal decorators. Application/router prefixes, authentication, and middleware must be checked in the corresponding setup code.
 
