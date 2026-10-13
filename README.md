@@ -1,5 +1,12 @@
 # Customer Churn Prediction
 
+## Overview
+
+A churn model trained from scratch on 24 sample customers with tenure, monthly charges and support tickets, holding out every fourth row. It uses logistic regression fitted by gradient descent on standardized features with a small L2 penalty, so the weights are learned rather than typed in. The API reports held-out accuracy, precision, recall and confusion counts, scores a customer with a probability and each feature's contribution, and ranks batches of up to 1000 into a retention queue, with an adjustable threshold for the high or low label.
+
+- **Built with:** Python, uvicorn, pytest, Docker, GitHub Actions
+- **Scope:** Local data science exercise on a tiny sample; it only scores, never emails customers or changes accounts, and refuses production apply.
+
 <!-- project-guide:start -->
 ## Project guide
 
